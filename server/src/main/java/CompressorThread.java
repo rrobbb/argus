@@ -21,7 +21,7 @@ public class CompressorThread extends Thread {
     @Override
     public void run() {
         try {
-            while (true) {
+            while (!isInterrupted()) {
 
                 var img = inputQueue.take();
 

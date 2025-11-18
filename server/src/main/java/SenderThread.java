@@ -8,7 +8,7 @@ public class SenderThread extends Thread {
 
     private static final int PACKET_SIZE = 1400;
 
-    private static final int FPS = 30;
+    private static final int FPS = 60;
 
     private final BlockingQueue<byte[]> bytesQueue;
 
@@ -39,7 +39,7 @@ public class SenderThread extends Thread {
 
             long nextFrameTime = System.currentTimeMillis();
 
-            while (true) {
+            while (!isInterrupted()) {
 
                 byte[] data = bytesQueue.take();
 

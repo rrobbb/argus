@@ -26,7 +26,7 @@ public class RecorderThread extends Thread {
 
         try {
 
-            while (true) {
+            while (!isInterrupted()) {
 
                 var image = robot.createScreenCapture(screenRect);
 
