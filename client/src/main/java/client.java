@@ -11,19 +11,11 @@ void main() throws IOException {
 
         var frames = new ConcurrentHashMap<Integer, FrameBuffer>();
 
-        var renderer = new Renderer();
+        var imageQueue = new LinkedBlockingQueue<BufferedImage>();
 
-        var renderQueue = new LinkedBlockingQueue<BufferedImage>();
+        var rendererThread = new RendererThread(imageQueue);
 
-        new Thread(() -> {
-
-            while (true) {
-                try {
-                    var image = renderQueue.take();
-                    renderer.display(image);
-                } catch (InterruptedException ignored) {}
-            }
-        }).start();
+        rendererThread.start();
 
         var buffer = new byte[MAX_UDP_PACKET];
 
@@ -49,14 +41,18 @@ void main() throws IOException {
 
             if (frameBuffer.isComplete()) {
                 try {
+
                     byte[] imgData = frameBuffer.join();
+
                     frames.remove(frameID);
 
-                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(imgData));
+                    var img = ImageIO.read(new ByteArrayInputStream(imgData));
+
                     if (img != null) {
-                        renderQueue.offer(img);
+                        imageQueue.offer(img);
                         System.out.println("Rendered frame " + frameID);
                     }
+
                 } catch (IOException e) {
                     System.err.println("Failed to decode frame " + frameID);
                 }
@@ -85,19 +81,19 @@ private static class FrameBuffer {
         }
     }
 
-    public boolean isComplete() {
-        return received == chunks.length;
-    }
+    public boolean isComplete() { return received == chunks.length; }
 
     public boolean isExpired(long timeoutMs) {
         return System.currentTimeMillis() - startTime > timeoutMs;
     }
 
     public byte[] join() throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        for (byte[] chunk : chunks) {
+
+        var out = new ByteArrayOutputStream();
+
+        for (byte[] chunk : chunks)
             if (chunk != null) out.write(chunk);
-        }
+
         return out.toByteArray();
     }
 }
