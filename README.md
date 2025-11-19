@@ -1,3 +1,3 @@
 # ReReborn: A lite remote desktop
-Experimental project create for learning purprose.
+Experimental project created for learning purprose.
 
