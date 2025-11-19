@@ -1,7 +1,7 @@
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 
-static final int PORT = 5900;
+static final int PORT = 60000;
 static final int MAX_UDP_PACKET = 65000;
 static final long FRAME_TIMEOUT_MS = 5000;
 

@@ -14,12 +14,12 @@ public class SenderThread extends Thread {
 
     private final InetAddress address;
 
-    private final int port;
+    private final int PORT;
 
     public SenderThread(BlockingQueue<byte[]> bytesQueue, InetAddress address, int port) {
         this.bytesQueue = bytesQueue;
         this.address = address;
-        this.port = port;
+        PORT = port;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class SenderThread extends Thread {
 
             final byte[] packetBuffer = new byte[PACKET_SIZE + 8];
 
-            var datagram = new DatagramPacket(packetBuffer, packetBuffer.length, address, port);
+            var datagram = new DatagramPacket(packetBuffer, packetBuffer.length, address, PORT);
 
             final long frameTimeMs = 1000L / FPS;
 
