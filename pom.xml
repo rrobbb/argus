@@ -8,10 +8,28 @@
     <artifactId>rereborn</artifactId>
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
+
     <modules>
         <module>client</module>
         <module>server</module>
     </modules>
+
+    <dependencies>
+
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv</artifactId>
+            <version>1.5.12</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv-platform</artifactId>
+            <version>1.5.12</version>
+            <classifier>macosx-arm64</classifier>
+        </dependency>
+
+    </dependencies>
 
     <properties>
         <maven.compiler.source>25</maven.compiler.source>

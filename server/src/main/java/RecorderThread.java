@@ -1,57 +1,82 @@
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 public final class RecorderThread extends Thread {
 
-    private final Robot robot;
+    private static final String INPUT_FORMAT = "avfoundation"; // Apple API
 
-    private final Rectangle screenRect;
+    private static final String DEVICE_ID = "1";
 
-    private final BlockingQueue<BufferedImage> imageQueue;
+    private static final int TARGET_FPS = 30;
 
-    public RecorderThread(BlockingQueue<BufferedImage> imageQueue) throws AWTException {
+    private final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
-        final var screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+    private final BlockingQueue<BufferedImage> outputQueue;
 
-        robot = new Robot();
-
-        screenRect = new Rectangle(screenSize);
-
-        this.imageQueue = imageQueue;
-    }
+    public RecorderThread(BlockingQueue<BufferedImage> outputQueue) { this.outputQueue = outputQueue; }
 
     @Override
     public void run() {
 
-        final int TARGET_FPS = 60;
-
-        final long TARGET_DELAY_MS = 1000 / TARGET_FPS;
+        Frame frame;
 
         BufferedImage image;
 
-        try {
+        final long TARGET_DELAY_MS = 1000 / TARGET_FPS;
 
-            while (!isInterrupted()) {
+        try (final var grabber = createGrabber()) {
 
-                long startTime = System.currentTimeMillis();
+            grabber.start();
 
-                image = robot.createScreenCapture(screenRect);
+            try (final var converter = new Java2DFrameConverter()) {
 
-                imageQueue.offer(image);
+                while (!isInterrupted()) {
 
-                long endTime = System.currentTimeMillis();
+                    long startTime = System.currentTimeMillis();
 
-                long elapsedTime = endTime - startTime;
+                    frame = grabber.grab();
 
-                long sleepTime = TARGET_DELAY_MS - elapsedTime;
+                    if (frame != null && frame.image != null) {
 
-                if (sleepTime > 0) Thread.sleep(sleepTime);
+                        image = converter.getBufferedImage(frame);
+
+                        outputQueue.poll();
+
+                        boolean success = outputQueue.offer(image, 10, TimeUnit.MILLISECONDS);
+
+                        if (!success) System.err.println("Frame not sent.");
+                    }
+
+                    long elapsedTime = System.currentTimeMillis() - startTime;
+
+                    long sleepTime = TARGET_DELAY_MS - elapsedTime;
+
+                    if (sleepTime > 0) Thread.sleep(sleepTime);
+                }
             }
 
-        } catch (InterruptedException ignored) {
+        } catch (IOException | InterruptedException ignored) {
 
             Thread.currentThread().interrupt();
         }
+    }
+
+    private FFmpegFrameGrabber createGrabber() {
+
+        var grabber = new FFmpegFrameGrabber(DEVICE_ID);
+
+        grabber.setFormat(INPUT_FORMAT);
+        grabber.setFrameRate(TARGET_FPS);
+        grabber.setImageWidth(screenSize.width);
+        grabber.setImageHeight(screenSize.height);
+
+        return grabber;
     }
 }

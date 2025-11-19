@@ -1,7 +1,6 @@
-import java.awt.*;
 import java.awt.image.BufferedImage;
 
-void main(String[] args) throws AWTException, IOException {
+void main(String[] args) throws IOException {
 
     final var address = InetAddress.getByName(args[0]);
 
