@@ -1,7 +1,7 @@
 import java.io.IOException;
 import java.util.Arrays;
 
-public class FrameBuffer {
+public final class FrameBuffer {
 
     private final byte[][] chunks;
 

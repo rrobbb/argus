@@ -11,15 +11,9 @@ void main(String[] args) throws AWTException, IOException {
 
     final var bytesQueue = new ArrayBlockingQueue<byte[]>(5);
 
-    final var recorderThread = new RecorderThread(imageQueue);
+    new RecorderThread(imageQueue).start();
 
-    final var compressorThread = new EncoderThread(imageQueue, bytesQueue);
+    new EncoderThread(imageQueue, bytesQueue).start();
 
-    final var senderThread = new SenderThread(bytesQueue, address, port);
-
-    recorderThread.start();
-
-    compressorThread.start();
-
-    senderThread.start();
+    new SenderThread(bytesQueue, address, port).start();
 }

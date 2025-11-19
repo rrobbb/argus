@@ -22,7 +22,7 @@ public final class ReceiverThread extends Thread {
     @Override
     public void run() {
 
-        var buffer = new byte[MAX_UDP_PACKET];
+        final var buffer = new byte[MAX_UDP_PACKET];
 
         DatagramPacket packet;
 
