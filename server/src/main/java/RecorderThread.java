@@ -2,7 +2,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.BlockingQueue;
 
-public class RecorderThread extends Thread {
+public final class RecorderThread extends Thread {
 
     private final Robot robot;
 
@@ -31,6 +31,8 @@ public class RecorderThread extends Thread {
                 var image = robot.createScreenCapture(screenRect);
 
                 imageQueue.put(image);
+
+                // System.out.println("Screenshot taken.");
 
             }
 

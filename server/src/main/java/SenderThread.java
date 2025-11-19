@@ -4,17 +4,15 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.concurrent.BlockingQueue;
 
-public class SenderThread extends Thread {
+public final class SenderThread extends Thread {
 
-    private static final int PACKET_SIZE = 1400;
+    private static final int PACKET_SIZE = 1400, FPS = 60;
 
-    private static final int FPS = 60;
+    private final int PORT;
 
     private final BlockingQueue<byte[]> bytesQueue;
 
     private final InetAddress address;
-
-    private final int PORT;
 
     public SenderThread(BlockingQueue<byte[]> bytesQueue, InetAddress address, int port) {
         this.bytesQueue = bytesQueue;
@@ -31,25 +29,25 @@ public class SenderThread extends Thread {
 
             int frameID = 0;
 
-            final byte[] packetBuffer = new byte[PACKET_SIZE + 8];
+            final var packetBuffer = new byte[PACKET_SIZE + 8];
 
             var datagram = new DatagramPacket(packetBuffer, packetBuffer.length, address, PORT);
 
-            final long frameTimeMs = 1000L / FPS;
+            final long ms = 1000L / FPS;
 
             long nextFrameTime = System.currentTimeMillis();
 
             while (!isInterrupted()) {
 
+                long now = System.currentTimeMillis();
+
                 byte[] data = bytesQueue.take();
 
                 frameID++;
 
-                long now = System.currentTimeMillis();
-
                 if (now < nextFrameTime) Thread.sleep(nextFrameTime - now);
 
-                nextFrameTime += frameTimeMs;
+                nextFrameTime += ms;
 
                 int total = (data.length + PACKET_SIZE - 1) / PACKET_SIZE;
 

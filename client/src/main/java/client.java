@@ -1,13 +1,15 @@
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 
-static final int PORT = 60000;
 static final int MAX_UDP_PACKET = 65000;
+
 static final long FRAME_TIMEOUT_MS = 5000;
 
-void main() throws IOException {
+void main(String[] args) throws IOException {
 
-    try (var socket = new DatagramSocket(PORT)) {
+    final var port = Integer.parseInt(args[0]);
+
+    try (var socket = new DatagramSocket(port)) {
 
         var frames = new ConcurrentHashMap<Integer, FrameBuffer>();
 

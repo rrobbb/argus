@@ -4,7 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 
-public class CompressorThread extends Thread {
+public final class CompressorThread extends Thread {
 
     private final BlockingQueue<BufferedImage> inputQueue;
 

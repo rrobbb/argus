@@ -3,6 +3,10 @@ import java.awt.image.BufferedImage;
 
 void main(String[] args) throws AWTException, IOException {
 
+    final var address = InetAddress.getByName(args[0]);
+
+    final var port = Integer.parseInt(args[1]);
+
     final var imageQueue = new ArrayBlockingQueue<BufferedImage>(5);
 
     final var bytesQueue = new ArrayBlockingQueue<byte[]>(5);
@@ -11,7 +15,7 @@ void main(String[] args) throws AWTException, IOException {
 
     final var compressorThread = new CompressorThread(imageQueue, bytesQueue);
 
-    final var senderThread = new SenderThread(bytesQueue, InetAddress.getByName(args[0]), 60000);
+    final var senderThread = new SenderThread(bytesQueue, address, port);
 
     recorderThread.start();
 
