@@ -1,4 +1,7 @@
-import javax.imageio.ImageIO;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -23,29 +26,43 @@ public final class DecoderThread extends Thread {
 
         BufferedImage image;
 
-        try {
+        FFmpegFrameGrabber grabber;
+
+        Frame frame;
+
+        try (final var converter = new Java2DFrameConverter()) {
 
             while (!isInterrupted()) {
 
                 imageData = decodingQueue.take();
 
-                image = ImageIO.read(new ByteArrayInputStream(imageData));
+                try (final var inputStream = new ByteArrayInputStream(imageData)) {
 
-                if (image != null) {
+                    grabber = new FFmpegFrameGrabber(inputStream);
 
-                    boolean success = imagesQueue.offer(image, 100, TimeUnit.MILLISECONDS);
+                    grabber.setFormat("mjpeg");
+                    grabber.setOption("vframes", "1");
 
-                    if (!success) System.out.println("Display Queue Full. Frame discarded.");
+                    grabber.start();
+
+                    frame = grabber.grabImage();
+
+                    if (frame != null) {
+
+                        image = converter.getBufferedImage(frame);
+
+                        boolean success = imagesQueue.offer(image, 100, TimeUnit.MILLISECONDS);
+
+                        if (!success) {
+                            System.err.println("Display Queue Full. Frame discarded by Decoder.");
+                        }
+                    }
                 }
             }
 
-        } catch (InterruptedException ignored) {
+        } catch (InterruptedException | IOException ignored) {
 
             Thread.currentThread().interrupt();
-
-        } catch (IOException e) {
-
-            System.err.println("Decoding failed due to IOException: " + e.getMessage());
         }
     }
 }

@@ -29,15 +29,17 @@ public final class SenderThread extends Thread {
 
         byte[] data, latestData;
 
+        int frameID = 0;
+
+        int totalSizeBytes, totalChunks, start, length;
+
+        final var packetBuffer = new byte[PACKET_SIZE];
+
+        final var datagram = new DatagramPacket(packetBuffer, packetBuffer.length, address, port);
+
         try (final var socket = new DatagramSocket()) {
 
             socket.setSendBufferSize(4_000_000);
-
-            int frameID = 0;
-
-            final var packetBuffer = new byte[PACKET_SIZE];
-
-            var datagram = new DatagramPacket(packetBuffer, packetBuffer.length, address, port);
 
             while (!isInterrupted()) {
 
@@ -52,15 +54,15 @@ public final class SenderThread extends Thread {
 
                 frameID++;
 
-                int totalSizeBytes = data.length;
+                totalSizeBytes = data.length;
 
-                int totalChunks = (data.length + PAYLOAD_SIZE - 1) / PAYLOAD_SIZE;
+                totalChunks = (data.length + PAYLOAD_SIZE - 1) / PAYLOAD_SIZE;
 
                 for (int i = 0; i < totalChunks; i++) {
 
-                    int start = i * PAYLOAD_SIZE;
+                    start = i * PAYLOAD_SIZE;
 
-                    int length = Math.min(PAYLOAD_SIZE, data.length - start);
+                    length = Math.min(PAYLOAD_SIZE, data.length - start);
 
                     // Header: FRAME ID (4 bytes)
                     packetBuffer[0] = (byte) (frameID >> 24);

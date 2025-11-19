@@ -14,9 +14,7 @@ public final class RecorderThread extends Thread {
 
     private static final String DEVICE_ID = "1";
 
-    private static final int TARGET_FPS = 30;
-
-    private final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+    private static final int TARGET_FPS = 60;
 
     private final BlockingQueue<BufferedImage> outputQueue;
 
@@ -69,6 +67,8 @@ public final class RecorderThread extends Thread {
     }
 
     private FFmpegFrameGrabber createGrabber() {
+
+        var screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 
         var grabber = new FFmpegFrameGrabber(DEVICE_ID);
 
