@@ -13,7 +13,7 @@ void main(String[] args) throws AWTException, IOException {
 
     final var recorderThread = new RecorderThread(imageQueue);
 
-    final var compressorThread = new CompressorThread(imageQueue, bytesQueue);
+    final var compressorThread = new EncoderThread(imageQueue, bytesQueue);
 
     final var senderThread = new SenderThread(bytesQueue, address, port);
 

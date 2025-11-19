@@ -24,18 +24,34 @@ public final class RecorderThread extends Thread {
     @Override
     public void run() {
 
+        final int TARGET_FPS = 60;
+
+        final long TARGET_DELAY_MS = 1000 / TARGET_FPS;
+
+        BufferedImage image;
+
         try {
 
             while (!isInterrupted()) {
 
-                var image = robot.createScreenCapture(screenRect);
+                long startTime = System.currentTimeMillis();
 
-                imageQueue.put(image);
+                image = robot.createScreenCapture(screenRect);
 
-                // System.out.println("Screenshot taken.");
+                imageQueue.offer(image);
 
+                long endTime = System.currentTimeMillis();
+
+                long elapsedTime = endTime - startTime;
+
+                long sleepTime = TARGET_DELAY_MS - elapsedTime;
+
+                if (sleepTime > 0) Thread.sleep(sleepTime);
             }
 
-        } catch (InterruptedException ignored) {}
+        } catch (InterruptedException ignored) {
+
+            Thread.currentThread().interrupt();
+        }
     }
 }

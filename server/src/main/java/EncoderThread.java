@@ -4,7 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 
-public final class CompressorThread extends Thread {
+public final class EncoderThread extends Thread {
 
     private final BlockingQueue<BufferedImage> inputQueue;
 
@@ -12,15 +12,16 @@ public final class CompressorThread extends Thread {
 
     private final ByteArrayOutputStream buffer = new ByteArrayOutputStream(1_000_000);
 
-    public CompressorThread(BlockingQueue<BufferedImage> inputQueue, BlockingQueue<byte[]> outputQueue) {
+    public EncoderThread(BlockingQueue<BufferedImage> inputQueue, BlockingQueue<byte[]> outputQueue) {
         this.inputQueue = inputQueue;
         this.outputQueue = outputQueue;
     }
 
-
     @Override
     public void run() {
+
         try {
+
             while (!isInterrupted()) {
 
                 var img = inputQueue.take();

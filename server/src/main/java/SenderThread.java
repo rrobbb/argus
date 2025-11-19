@@ -6,9 +6,13 @@ import java.util.concurrent.BlockingQueue;
 
 public final class SenderThread extends Thread {
 
-    private static final int PACKET_SIZE = 1400, FPS = 60;
+    private static final int PAYLOAD_SIZE = 1400;
 
-    private final int PORT;
+    private static final int HEADER_SIZE = 12;
+
+    private static final int PACKET_SIZE = PAYLOAD_SIZE + HEADER_SIZE;
+
+    private final int port;
 
     private final BlockingQueue<byte[]> bytesQueue;
 
@@ -17,11 +21,13 @@ public final class SenderThread extends Thread {
     public SenderThread(BlockingQueue<byte[]> bytesQueue, InetAddress address, int port) {
         this.bytesQueue = bytesQueue;
         this.address = address;
-        PORT = port;
+        this.port = port;
     }
 
     @Override
     public void run() {
+
+        byte[] data, latestData;
 
         try (final var socket = new DatagramSocket()) {
 
@@ -29,46 +35,56 @@ public final class SenderThread extends Thread {
 
             int frameID = 0;
 
-            final var packetBuffer = new byte[PACKET_SIZE + 8];
+            final var packetBuffer = new byte[PACKET_SIZE];
 
-            var datagram = new DatagramPacket(packetBuffer, packetBuffer.length, address, PORT);
-
-            final long ms = 1000L / FPS;
-
-            long nextFrameTime = System.currentTimeMillis();
+            var datagram = new DatagramPacket(packetBuffer, packetBuffer.length, address, port);
 
             while (!isInterrupted()) {
 
-                long now = System.currentTimeMillis();
+                data = bytesQueue.take();
 
-                byte[] data = bytesQueue.take();
+                latestData = bytesQueue.poll();
+
+                while (latestData != null) {
+                    data = latestData;
+                    latestData = bytesQueue.poll();
+                }
 
                 frameID++;
 
-                if (now < nextFrameTime) Thread.sleep(nextFrameTime - now);
+                int totalSizeBytes = data.length;
 
-                nextFrameTime += ms;
+                int totalChunks = (data.length + PAYLOAD_SIZE - 1) / PAYLOAD_SIZE;
 
-                int total = (data.length + PACKET_SIZE - 1) / PACKET_SIZE;
+                for (int i = 0; i < totalChunks; i++) {
 
-                for (int i = 0; i < total; i++) {
+                    int start = i * PAYLOAD_SIZE;
 
-                    int start = i * PACKET_SIZE;
+                    int length = Math.min(PAYLOAD_SIZE, data.length - start);
 
-                    int length = Math.min(PACKET_SIZE, data.length - start);
-
+                    // Header: FRAME ID (4 bytes)
                     packetBuffer[0] = (byte) (frameID >> 24);
                     packetBuffer[1] = (byte) (frameID >> 16);
                     packetBuffer[2] = (byte) (frameID >> 8);
                     packetBuffer[3] = (byte) frameID;
+
+                    // Header: CHUNK INDEX (2 bytes)
                     packetBuffer[4] = (byte) (i >> 8);
                     packetBuffer[5] = (byte) i;
-                    packetBuffer[6] = (byte) (total >> 8);
-                    packetBuffer[7] = (byte) total;
 
-                    System.arraycopy(data, start, packetBuffer, 8, length);
+                    // Header: TOTAL CHUNK (2 bytes)
+                    packetBuffer[6] = (byte) (totalChunks >> 8);
+                    packetBuffer[7] = (byte) totalChunks;
 
-                    datagram.setData(packetBuffer, 0, length + 8);
+                    // Header: TOTAL SIZE IN BYTES (4 bytes)
+                    packetBuffer[8] = (byte) (totalSizeBytes >> 24);
+                    packetBuffer[9] = (byte) (totalSizeBytes >> 16);
+                    packetBuffer[10] = (byte) (totalSizeBytes >> 8);
+                    packetBuffer[11] = (byte) totalSizeBytes;
+
+                    System.arraycopy(data, start, packetBuffer, HEADER_SIZE, length);
+
+                    datagram.setData(packetBuffer, 0, length + HEADER_SIZE);
 
                     socket.send(datagram);
                 }
