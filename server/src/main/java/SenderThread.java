@@ -1,97 +1,51 @@
 import java.io.IOException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.util.concurrent.BlockingQueue;
+import java.io.PipedInputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 
 public final class SenderThread extends Thread {
 
-    private static final int PAYLOAD_SIZE = 1400;
+    private final PipedInputStream in;
 
-    private static final int HEADER_SIZE = 12;
+    private final OutputStream out;
 
-    private static final int PACKET_SIZE = PAYLOAD_SIZE + HEADER_SIZE;
+    public SenderThread(PipedInputStream in, Socket socket) throws IOException {
 
-    private final int port;
+        this.in = in;
 
-    private final BlockingQueue<byte[]> bytesQueue;
-
-    private final InetAddress address;
-
-    public SenderThread(BlockingQueue<byte[]> bytesQueue, InetAddress address, int port) {
-        this.bytesQueue = bytesQueue;
-        this.address = address;
-        this.port = port;
+        out = socket.getOutputStream();
     }
 
     @Override
     public void run() {
 
-        byte[] data, latestData;
+        final var buffer = new byte[4096];
 
-        int frameID = 0;
+        int bytesRead;
 
-        int totalSizeBytes, totalChunks, start, length;
+        try {
 
-        final var packetBuffer = new byte[PACKET_SIZE];
-
-        final var datagram = new DatagramPacket(packetBuffer, packetBuffer.length, address, port);
-
-        try (final var socket = new DatagramSocket()) {
-
-            socket.setSendBufferSize(4_000_000);
-
-            while (!isInterrupted()) {
-
-                data = bytesQueue.take();
-
-                latestData = bytesQueue.poll();
-
-                while (latestData != null) {
-                    data = latestData;
-                    latestData = bytesQueue.poll();
+            while (!isInterrupted() && (bytesRead = in.read(buffer)) != -1)
+                if (bytesRead > 0) {
+                    out.write(buffer, 0, bytesRead);
+                    out.flush();
                 }
 
-                frameID++;
+        } catch (IOException e) {
 
-                totalSizeBytes = data.length;
+            System.err.println(e.getMessage());
 
-                totalChunks = (data.length + PAYLOAD_SIZE - 1) / PAYLOAD_SIZE;
+        } finally {
 
-                for (int i = 0; i < totalChunks; i++) {
+            try {
 
-                    start = i * PAYLOAD_SIZE;
+                in.close();
 
-                    length = Math.min(PAYLOAD_SIZE, data.length - start);
+                out.close();
 
-                    // Header: FRAME ID (4 bytes)
-                    packetBuffer[0] = (byte) (frameID >> 24);
-                    packetBuffer[1] = (byte) (frameID >> 16);
-                    packetBuffer[2] = (byte) (frameID >> 8);
-                    packetBuffer[3] = (byte) frameID;
+            } catch (IOException ignored) {}
 
-                    // Header: CHUNK INDEX (2 bytes)
-                    packetBuffer[4] = (byte) (i >> 8);
-                    packetBuffer[5] = (byte) i;
-
-                    // Header: TOTAL CHUNK (2 bytes)
-                    packetBuffer[6] = (byte) (totalChunks >> 8);
-                    packetBuffer[7] = (byte) totalChunks;
-
-                    // Header: TOTAL SIZE IN BYTES (4 bytes)
-                    packetBuffer[8] = (byte) (totalSizeBytes >> 24);
-                    packetBuffer[9] = (byte) (totalSizeBytes >> 16);
-                    packetBuffer[10] = (byte) (totalSizeBytes >> 8);
-                    packetBuffer[11] = (byte) totalSizeBytes;
-
-                    System.arraycopy(data, start, packetBuffer, HEADER_SIZE, length);
-
-                    datagram.setData(packetBuffer, 0, length + HEADER_SIZE);
-
-                    socket.send(datagram);
-                }
-            }
-
-        } catch (InterruptedException | IOException ignored) {}
+            Thread.currentThread().interrupt();
+        }
     }
 }

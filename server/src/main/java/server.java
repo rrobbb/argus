@@ -1,6 +1,15 @@
-import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+import java.net.InetAddress;
+import java.net.ServerSocket;
 
 void main(String[] args) throws IOException {
+
+    if (args.length < 3) {
+        System.err.println("Use: <address> <port> <fps>");
+        System.exit(1);
+    }
 
     final var ADDRESS = InetAddress.getByName(args[0]);
 
@@ -8,13 +17,24 @@ void main(String[] args) throws IOException {
 
     final var FPS = Integer.parseInt(args[2]);
 
-    final var imageQueue = new ArrayBlockingQueue<BufferedImage>(5);
+    try (final var serverSocket = new ServerSocket(PORT, 50, ADDRESS)) {
 
-    final var bytesQueue = new ArrayBlockingQueue<byte[]>(5);
+        System.out.println("Waiting");
 
-    new RecorderThread(imageQueue, FPS).start();
+        final var clientSocket = serverSocket.accept();
 
-    new EncoderThread(imageQueue, bytesQueue).start();
+        System.out.println("Client connected: " + clientSocket.getInetAddress().getHostAddress());
 
-    new SenderThread(bytesQueue, ADDRESS, PORT).start();
+        final var out = new PipedOutputStream();
+
+        final var in = new PipedInputStream(out);
+
+        new EncoderThread(out, FPS).start();
+
+        new SenderThread(in, clientSocket).start();
+
+    } catch (IOException e) {
+
+        System.err.println(e.getMessage());
+    }
 }

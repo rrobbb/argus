@@ -1,67 +1,95 @@
+import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
 
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.net.Socket;
+import java.net.ServerSocket;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 public final class DecoderThread extends Thread {
 
-    private final BlockingQueue<byte[]> decodingQueue;
+    private final int port;
 
-    private final BlockingQueue<BufferedImage> imagesQueue;
+    private final boolean isServerMode;
 
-    public DecoderThread(BlockingQueue<byte[]> decodingQueue, BlockingQueue<BufferedImage> imagesQueue) {
-        this.decodingQueue = decodingQueue;
-        this.imagesQueue = imagesQueue;
+    private final BlockingQueue<BufferedImage> imageQueue;
+
+    public DecoderThread(int port, boolean isServerMode, BlockingQueue<BufferedImage> imageQueue) {
+        this.port = port;
+        this.isServerMode = isServerMode;
+        this.imageQueue = imageQueue;
     }
 
     @Override
     public void run() {
 
-        byte[] imageData;
+        Socket connectionSocket = null;
 
-        BufferedImage image;
+        try (final var serverSocket = new ServerSocket(port) ) {
 
-        FFmpegFrameGrabber grabber;
+            if (isServerMode) {
 
-        Frame frame;
+                System.out.println("Client in ascolto sulla porta " + port + "...");
 
-        try (final var converter = new Java2DFrameConverter()) {
+                connectionSocket = serverSocket.accept();
 
-            while (!isInterrupted()) {
+                System.out.println("Connessione accettata dal server.");
 
-                imageData = decodingQueue.take();
+            } else {
 
-                try (final var inputStream = new ByteArrayInputStream(imageData)) {
+                System.out.println("Client si connette a localhost:" + port + "...");
 
-                    grabber = new FFmpegFrameGrabber(inputStream);
+                connectionSocket = new Socket("localhost", port);
 
+                System.out.println("Connessione stabilita.");
+            }
 
-                    grabber.setFormat("mjpeg");
-                    grabber.setOption("vframes", "1");
+            var inputStream = connectionSocket.getInputStream();
 
-                    grabber.start();
+            try (final var grabber = new FFmpegFrameGrabber(inputStream, 0)) {
 
-                    frame = grabber.grabImage();
+                grabber.setFormat("mpegts");
+                grabber.setVideoCodecName("h264_videotoolbox");
+                grabber.setOption("analyzeduration", "5000000");
+                grabber.setOption("probesize", "1000000");
+                grabber.start();
 
-                    if (frame != null) {
+                try (final var converter = new Java2DFrameConverter()) {
 
-                        image = converter.getBufferedImage(frame);
+                    Frame frame;
 
-                        boolean success = imagesQueue.offer(image, 100, TimeUnit.MILLISECONDS);
+                    BufferedImage decodedImage;
 
-                        if (!success) {
-                            System.err.println("Display Queue Full. Frame discarded by Decoder.");
+                    while (!isInterrupted() && (frame = grabber.grab()) != null) {
+
+                        if (frame.image != null) {
+                            decodedImage = converter.getBufferedImage(frame);
+                            imageQueue.offer(decodedImage);
                         }
                     }
                 }
+
+                grabber.stop();
+
+            } catch (Exception e) {
+
+                System.err.println("Errore durante la decodifica o I/O: " + e.getMessage());
             }
 
-        } catch (InterruptedException | IOException ignored) {
+        } catch (IOException e) {
+
+            System.err.println("Errore di connessione: " + e.getMessage());
+
+        } finally {
+
+            try {
+
+                if (connectionSocket != null) connectionSocket.close();
+
+            } catch (IOException ignored) {}
 
             Thread.currentThread().interrupt();
         }

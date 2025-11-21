@@ -2,6 +2,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
@@ -10,11 +11,11 @@ public final class RendererThread extends Thread {
 
     private final JFrame frame = new JFrame("Client");
 
-    private final LinkedBlockingQueue<BufferedImage> imageQueue;
+    private final ArrayBlockingQueue<BufferedImage> imageQueue;
 
     private final BufferStrategy strategy;
 
-    public RendererThread(LinkedBlockingQueue<BufferedImage> imageQueue) {
+    public RendererThread(ArrayBlockingQueue<BufferedImage> imageQueue) {
 
         this.imageQueue = imageQueue;
 
@@ -28,7 +29,6 @@ public final class RendererThread extends Thread {
         canvas.setSize(frame.getWidth(), frame.getHeight());
 
         frame.add(canvas);
-
         frame.setVisible(true);
 
         canvas.createBufferStrategy(3);
@@ -55,7 +55,8 @@ public final class RendererThread extends Thread {
                 strategy.show();
 
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+
+                Thread.currentThread().interrupt();
             }
         }
     }
