@@ -1,6 +1,7 @@
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
+import org.bytedeco.javacv.OpenCVFrameConverter;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -10,15 +11,46 @@ import java.util.concurrent.TimeUnit;
 
 public final class RecorderThread extends Thread {
 
-    private static final String INPUT_FORMAT = "avfoundation"; // Apple API
+    private static final String INPUT_FORMAT = getInputFormat();
 
-    private static final String DEVICE_ID = "1";
-
-    private static final int TARGET_FPS = 60;
+    private static int FPS;
 
     private final BlockingQueue<BufferedImage> outputQueue;
 
-    public RecorderThread(BlockingQueue<BufferedImage> outputQueue) { this.outputQueue = outputQueue; }
+    public RecorderThread(BlockingQueue<BufferedImage> outputQueue, final int FPS) {
+
+        this.outputQueue = outputQueue;
+
+        RecorderThread.FPS = FPS;
+    }
+
+    private static String getInputFormat() {
+
+        final var OS = System.getProperty("os.name");
+
+        return switch (OS) {
+
+            case "Mac OS X" -> "avfoundation";
+
+            case "Windows 10", "Windows 11" -> "gdigrab";
+
+            default -> throw new IllegalStateException("Unexpected OS: " + OS);
+        };
+    }
+
+    private FFmpegFrameGrabber createGrabber(String deviceID) {
+
+        final var screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+
+        final var grabber = new FFmpegFrameGrabber(deviceID);
+
+        grabber.setFormat(INPUT_FORMAT);
+        grabber.setFrameRate(FPS);
+        grabber.setImageWidth(screenSize.width);
+        grabber.setImageHeight(screenSize.height);
+
+        return grabber;
+    }
 
     @Override
     public void run() {
@@ -27,9 +59,9 @@ public final class RecorderThread extends Thread {
 
         BufferedImage image;
 
-        final long TARGET_DELAY_MS = 1000 / TARGET_FPS;
+        final long TARGET_DELAY_MS = 1000 / FPS;
 
-        try (final var grabber = createGrabber()) {
+        try (final var grabber = createGrabber("1")) {
 
             grabber.start();
 
@@ -64,19 +96,5 @@ public final class RecorderThread extends Thread {
 
             Thread.currentThread().interrupt();
         }
-    }
-
-    private FFmpegFrameGrabber createGrabber() {
-
-        var screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-
-        var grabber = new FFmpegFrameGrabber(DEVICE_ID);
-
-        grabber.setFormat(INPUT_FORMAT);
-        grabber.setFrameRate(TARGET_FPS);
-        grabber.setImageWidth(screenSize.width);
-        grabber.setImageHeight(screenSize.height);
-
-        return grabber;
     }
 }

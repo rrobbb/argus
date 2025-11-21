@@ -40,6 +40,7 @@ public final class DecoderThread extends Thread {
 
                     grabber = new FFmpegFrameGrabber(inputStream);
 
+
                     grabber.setFormat("mjpeg");
                     grabber.setOption("vframes", "1");
 

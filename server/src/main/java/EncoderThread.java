@@ -10,8 +10,6 @@ public final class EncoderThread extends Thread {
 
     private final BlockingQueue<byte[]> outputQueue;
 
-    private final ByteArrayOutputStream buffer = new ByteArrayOutputStream(1_000_000);
-
     public EncoderThread(BlockingQueue<BufferedImage> inputQueue, BlockingQueue<byte[]> outputQueue) {
         this.inputQueue = inputQueue;
         this.outputQueue = outputQueue;
@@ -20,15 +18,19 @@ public final class EncoderThread extends Thread {
     @Override
     public void run() {
 
+        final var buffer = new ByteArrayOutputStream(1_000_000);
+
+        BufferedImage image;
+
         try {
 
             while (!isInterrupted()) {
 
-                var img = inputQueue.take();
+                image = inputQueue.take();
 
                 buffer.reset();
 
-                ImageIO.write(img, "jpg", buffer);
+                ImageIO.write(image, "jpg", buffer);
 
                 outputQueue.put(buffer.toByteArray());
             }
