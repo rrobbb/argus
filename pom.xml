@@ -11,7 +11,7 @@
 
     <modules>
         <module>client</module>
-        <module>me.rob.rereborn.client.server</module>
+        <module>server</module>
     </modules>
 
     <properties>
