@@ -1,3 +1,5 @@
+package me.rob.rereborn.server;
+
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacv.*;
 import org.bytedeco.javacv.Frame;

@@ -1,3 +1,5 @@
+package me.rob.rereborn.server;
+
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.OutputStream;

@@ -1,9 +1,10 @@
+package me.rob.rereborn.client;
+
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferStrategy;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static javax.swing.WindowConstants.EXIT_ON_CLOSE;
 

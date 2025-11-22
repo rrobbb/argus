@@ -1,3 +1,5 @@
+package me.rob.rereborn.server;
+
 public class Utils {
 
     public static String getInputFormat() {
