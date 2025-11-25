@@ -6,20 +6,20 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.ServerSocket;
 
-void main(String[] args) {
+void main(String[] args) throws IOException {
 
     if (args.length < 2) {
         System.err.println("Use: <address> <port> <fps>");
         System.exit(1);
     }
 
-    final var PORT = Integer.parseInt(args[0]);
+    final var port = Integer.parseInt(args[0]);
 
-    final var FPS = Integer.parseInt(args[1]);
+    final var fps = Integer.parseInt(args[1]);
 
-    try (final var serverSocket = new ServerSocket(PORT, 50)) {
+    try (final var serverSocket = new ServerSocket(port, 50)) {
 
-        System.out.println("Waiting...");
+        System.out.println("Waiting for a client.");
 
         final var clientSocket = serverSocket.accept();
 
@@ -29,12 +29,8 @@ void main(String[] args) {
 
         final var in = new PipedInputStream(out);
 
-        new EncoderThread(out, FPS).start();
+        new EncoderThread(out, fps).start();
 
-        new SenderThread(in, clientSocket).start();
-
-    } catch (IOException e) {
-
-        System.err.println(e.getMessage());
+        new SenderThread(in, clientSocket.getOutputStream()).start();
     }
 }

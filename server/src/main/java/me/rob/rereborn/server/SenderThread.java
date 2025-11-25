@@ -3,7 +3,6 @@ package me.rob.rereborn.server;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.OutputStream;
-import java.net.Socket;
 
 public final class SenderThread extends Thread {
 
@@ -11,11 +10,9 @@ public final class SenderThread extends Thread {
 
     private final OutputStream out;
 
-    public SenderThread(PipedInputStream in, Socket socket) throws IOException {
-
+    public SenderThread(PipedInputStream in, OutputStream out) {
         this.in = in;
-
-        out = socket.getOutputStream();
+        this.out = out;
     }
 
     @Override

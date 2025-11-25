@@ -40,15 +40,15 @@ public final class RendererThread extends Thread {
     @Override
     public void run() {
 
+        Graphics g;
+
         while (!isInterrupted()) {
 
             try {
 
                 var image = imageQueue.take();
 
-                if (strategy == null) continue;
-
-                var g = strategy.getDrawGraphics();
+                g = strategy.getDrawGraphics();
 
                 g.drawImage(image, 0, 0, frame.getWidth(), frame.getHeight(), null);
                 g.dispose();

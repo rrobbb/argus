@@ -22,12 +22,12 @@ public final class DecoderThread extends Thread {
     @Override
     public void run() {
 
-        try (final var grabber = new FFmpegFrameGrabber(in, 0)) {
+        long frameCount = 0;
 
-            grabber.setFormat("mpegts");
-            grabber.setVideoCodecName("h264_videotoolbox");
-            grabber.setOption("analyzeduration", "5000000");
-            grabber.setOption("probesize", "1000000");
+        long lastTime = System.currentTimeMillis();
+
+        try (final var grabber = getGrabber()) {
+
             grabber.start();
 
             try (final var converter = new Java2DFrameConverter()) {
@@ -39,13 +39,29 @@ public final class DecoderThread extends Thread {
                 while (!isInterrupted() && (frame = grabber.grab()) != null) {
 
                     if (frame.image != null) {
+
+                        long currentTime = System.currentTimeMillis();
+
+                        long elapsedTime = currentTime - lastTime;
+
                         decodedImage = converter.getBufferedImage(frame);
+
+                        frameCount++;
+
                         out.offer(decodedImage);
+
+                        if (elapsedTime >= 1000) {
+
+                            double fps = (double) frameCount * 1000.0 / elapsedTime;
+
+                            System.out.printf("FPS: %.2f\n", fps);
+
+                            frameCount = 0;
+                            lastTime = currentTime;
+                        }
                     }
                 }
             }
-
-            grabber.stop();
 
         } catch (Exception e) {
 
@@ -53,5 +69,17 @@ public final class DecoderThread extends Thread {
 
             Thread.currentThread().interrupt();
         }
+    }
+
+    private FFmpegFrameGrabber getGrabber() {
+
+        final var grabber = new FFmpegFrameGrabber(in, 0);
+
+        grabber.setFormat("mpegts");
+        grabber.setVideoCodecName("h264_videotoolbox");
+        grabber.setOption("analyzeduration", "5000000");
+        grabber.setOption("probesize", "1000000");
+
+        return grabber;
     }
 }

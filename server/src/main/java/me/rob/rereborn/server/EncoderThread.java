@@ -12,13 +12,13 @@ public final class EncoderThread extends Thread {
 
     private final PipedOutputStream out;
 
-    private final int FPS;
+    private final int fps;
 
-    public EncoderThread(PipedOutputStream out, int FPS) {
+    public EncoderThread(PipedOutputStream out, int fps) {
 
         this.out = out;
 
-        this.FPS = FPS;
+        this.fps = fps;
 
         setPriority(Thread.MAX_PRIORITY);
     }
@@ -26,9 +26,9 @@ public final class EncoderThread extends Thread {
     @Override
     public void run() {
 
-        Frame frame;
+        Frame currentFrame;
 
-        final long TARGET_DELAY_MS = 1000 / FPS;
+        final long TARGET_DELAY_MS = 1000 / fps;
 
         try (final var grabber = getGrabber("1")) {
 
@@ -42,9 +42,11 @@ public final class EncoderThread extends Thread {
 
                 long startTime = System.currentTimeMillis();
 
-                frame = grabber.grab();
+                currentFrame = grabber.grab();
 
-                if (frame != null && frame.image != null) recorder.record(frame);
+                if (currentFrame != null && currentFrame.image != null) {
+                    recorder.record(currentFrame);
+                }
 
                 long elapsedTime = System.currentTimeMillis() - startTime;
 
@@ -68,12 +70,10 @@ public final class EncoderThread extends Thread {
         final var grabber = new FFmpegFrameGrabber(deviceID);
 
         grabber.setFormat(inputFormat);
-        grabber.setFrameRate(FPS);
+        grabber.setFrameRate(fps);
         grabber.setImageWidth(screenSize.width);
         grabber.setImageHeight(screenSize.height);
-
         grabber.setOption("hwaccel", "videotoolbox");
-
         grabber.setPixelFormat(avutil.AV_PIX_FMT_BGR24);
 
         return grabber;
@@ -88,8 +88,8 @@ public final class EncoderThread extends Thread {
         recorder.setFormat("mpegts");
         recorder.setOption("color_range", "mpeg");
         recorder.setOption("tune", "zerolatency");
-        recorder.setFrameRate(FPS);
-        recorder.setGopSize(FPS * 2);
+        recorder.setFrameRate(fps);
+        recorder.setGopSize(fps * 2);
         recorder.setPixelFormat(avutil.AV_PIX_FMT_YUV420P);
         recorder.setVideoBitrate(4000000);
 
