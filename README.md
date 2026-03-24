@@ -1,2 +1,2 @@
-# ReReborn: A lite remote desktop
+# Argus: A lite remote desktop
 An experimental project created for learning purprose.
